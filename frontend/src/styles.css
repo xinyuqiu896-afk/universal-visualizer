@@ -1,0 +1,235 @@
+/* ============================================================
+   万能可视化 · 全局设计系统
+   动效体系：iOS 曲线(状态/布局) + Material 曲线(微交互)
+   性能铁律：只动 transform / opacity / clip-path / border-radius
+   ============================================================ */
+:root {
+  /* ---- 色板 ---- */
+  --bg: #f4f6fa;
+  --panel: #ffffff;
+  --border: #e6eaf2;
+  --border-strong: #dde3ef;
+  --text: #1f2733;
+  --text-sub: #6b7686;
+  --primary: #4f6ef7;
+  --primary-hover: #6c85f8;
+  --primary-soft: #eef1ff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
+  /* ---- 形状与层次 ---- */
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(20, 30, 60, .05);
+  --shadow: 0 1px 3px rgba(20, 30, 60, .05), 0 6px 20px rgba(20, 30, 60, .05);
+  --shadow-lg: 0 4px 14px rgba(20, 30, 60, .08), 0 18px 48px rgba(20, 30, 60, .10);
+  --shadow-hover: 0 6px 16px rgba(20, 30, 60, .09), 0 20px 44px rgba(20, 30, 60, .12);
+
+  /* ---- 动效 token（iOS 动效提示词库·统一档位） ---- */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);      /* 状态/布局切换 */
+  --ease-mat: cubic-bezier(0.4, 0, 0.2, 1);        /* hover/active 微交互 */
+  --dur-fast: 160ms;
+  --dur-mid: 240ms;
+  --dur-state: 320ms;
+  --dur-layout: 440ms;
+  --font-num: tabular-nums;
+}
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+body {
+  font-family: -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--text); overflow: hidden;
+  font-size: 13px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+/* 数字统一等宽，对齐耐看 */
+body, .el-button, .el-tag { font-variant-numeric: tabular-nums; }
+
+/* 键盘可达性：统一的 focus-visible 外描边 */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.layout { display: flex; height: 100vh; }
+body {
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgba(139, 92, 246, .06), transparent 60%),
+    radial-gradient(1000px 480px at -10% 110%, rgba(79, 110, 247, .07), transparent 60%),
+    var(--bg);
+}
+.pane { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; min-width: 0; }
+.pane-left { width: 224px; flex-shrink: 0; }
+.pane-mid { width: 340px; flex-shrink: 0; }
+.pane-right { flex: 1; border-right: none; background: linear-gradient(180deg, #edf0f6, #e9edf4); }
+.pane-head {
+  padding: 13px 16px; border-bottom: 1px solid var(--border);
+  font-weight: 600; font-size: 13.5px; letter-spacing: .3px;
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  color: #2a3342;
+  background: linear-gradient(180deg, #fdfdff, #f9fafd);
+}
+/* 栏头图标统一品牌色，形成视觉锚点 */
+.pane-head .el-icon { color: var(--primary); }
+.pane-body { flex: 1; overflow: auto; }
+
+/* 细滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #d3d9e5; border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #bfc7d6; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* 空状态：层级化排版 */
+.empty-state {
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--text-sub); gap: 10px; user-select: none; text-align: center; padding: 24px;
+}
+.empty-state .icon { font-size: 40px; opacity: .4; }
+
+/* 模块面板通用：标题与卡片排版层级 */
+.module-title {
+  font-size: 15px; font-weight: 700; margin: 0 0 4px; letter-spacing: .3px; color: var(--text);
+}
+.module-sub { font-size: 12px; color: var(--text-sub); margin: 0 0 14px; line-height: 1.7; }
+.hint { color: var(--text-sub); font-size: 12px; line-height: 1.7; }
+.scroll-area { padding: 16px; }
+
+/* ---- 效果 ⑫：卡片悬浮抬升（进入 200ms / 离开 280ms 不对称） ---- */
+.card-box, .rec-card, .model-card, .theme-card {
+  transition: box-shadow 280ms var(--ease-mat), transform 280ms var(--ease-mat), border-color 280ms var(--ease-mat);
+}
+.card-box:hover, .rec-card:hover, .model-card:hover, .theme-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--border-strong);
+}
+/* 触屏设备：以按压替代悬浮 */
+@media (hover: none) {
+  .card-box:hover, .rec-card:hover, .model-card:hover, .theme-card:hover {
+    transform: none; box-shadow: var(--shadow);
+  }
+  .card-box:active, .rec-card:active, .model-card:active, .theme-card:active {
+    transform: scale(.98);
+    transition-duration: 80ms;
+  }
+}
+
+.card-box {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 15px 16px; margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.card-title { font-size: 13px; font-weight: 600; color: var(--text); margin: 0 0 8px; letter-spacing: .2px; }
+.tag-line { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* ---- 主按钮品牌渐变（与 Logo 一致的蓝紫渐变） ---- */
+.el-button--primary:not(.is-text):not(.is-link) {
+  background: linear-gradient(135deg, #4f6ef7, #7c5cf6);
+  border-color: transparent;
+}
+.el-button--primary:not(.is-text):not(.is-link):hover {
+  background: linear-gradient(135deg, #5f7cf8, #8b6cf7);
+}
+.el-button--primary:not(.is-disabled):not(.is-text):not(.is-link):hover {
+  box-shadow: 0 6px 16px rgba(99, 102, 241, .38);
+}
+/* 选择框 / 输入框聚焦品牌色统一 */
+.el-input__wrapper.is-focus, .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--primary) inset, 0 0 0 3px rgba(79, 110, 247, .12) !important;
+}
+/* 上传拖拽区：品牌渐变虚线 + 悬浮光晕 */
+.el-upload-dragger { border: 1.5px dashed #c9d4f5; background: linear-gradient(180deg, #fbfcff, #f7f9ff); }
+.el-upload-dragger:hover { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 110, 247, .08); }
+.el-upload-dragger .el-icon { transition: transform 280ms var(--ease-ios); }
+.el-upload-dragger:hover .el-icon { transform: translateY(-4px) scale(1.08); }
+
+/* ---- 效果 ⑧：按钮统一按压反馈 ----
+   hover 提亮上浮 1px（160ms 进入/240ms 离开）；active 按下 scale .97（80ms）；禁用无动效 */
+.el-button {
+  transition: transform 80ms var(--ease-mat), box-shadow 240ms var(--ease-mat),
+              background-color 240ms var(--ease-mat), border-color 240ms var(--ease-mat);
+}
+@media (hover: hover) and (pointer: fine) {
+  .el-button:not(.is-disabled):not(.is-text):not(.is-link):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(20, 30, 60, .10);
+  }
+}
+.el-button:not(.is-disabled):not(.is-text):not(.is-link):active {
+  transform: translateY(0) scale(.97);
+  box-shadow: var(--shadow-sm);
+  transition-duration: 80ms;
+}
+.el-button.is-disabled { transition: none; }
+.el-button--primary:not(.is-disabled):hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79, 110, 247, .32); }
+
+/* ---- 效果 ⑭：Switch 果冻回弹 ---- */
+.el-switch__core { transition: background 240ms var(--ease-ios), border 240ms var(--ease-ios); }
+.el-switch__action { transition: transform 240ms var(--ease-ios); }
+.el-switch.is-checked .el-switch__action { animation: switchJelly 160ms var(--ease-mat) 240ms; }
+@keyframes switchJelly { 0% { transform: translateX(-25%) scale(1); } 50% { transform: translateX(0) scale(1.1); } 100% { transform: translateX(0) scale(1); } }
+
+/* ---- 效果 ⑬：Toast（ElMessage）重样式：更圆润、层次更强 ---- */
+.el-message {
+  border-radius: 14px; border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg); padding: 11px 18px; backdrop-filter: blur(8px);
+}
+
+/* Element Plus 细节统一 */
+.el-button { font-weight: 500; }
+.el-button--primary { --el-button-hover-bg-color: var(--primary-hover); }
+.el-upload-dragger { border-radius: var(--radius); transition: border-color 240ms var(--ease-mat), background-color 240ms var(--ease-mat); }
+.el-upload-dragger:hover { border-color: var(--primary); background: #fafbff; }
+.el-dialog { border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+.el-dialog.is-align-center { animation: dialogIn .42s var(--ease-ios); }
+@keyframes dialogIn { from { opacity: 0; transform: translateY(14px) scale(.96); } }
+.el-input__wrapper, .el-textarea__inner { transition: box-shadow 200ms var(--ease-mat); }
+.el-select-dropdown { border-radius: 12px; box-shadow: var(--shadow-lg); animation: dropdownIn .24s var(--ease-ios); }
+@keyframes dropdownIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+
+/* ---- 效果 ⑨：模块视图切换（旧视图下移淡出 → 新视图上移淡入） ---- */
+.view-enter-active { transition: opacity 320ms var(--ease-ios), transform 320ms var(--ease-ios); transition-delay: 80ms; }
+.view-leave-active { transition: opacity 160ms var(--ease-ios), transform 160ms var(--ease-ios); }
+.view-enter-from { opacity: 0; transform: translateY(12px); }
+.view-leave-to { opacity: 0; transform: translateY(8px); }
+
+/* ---- 效果 ⑩：骨架屏微光 1.2s 周期，加载超 300ms 才启动 ---- */
+.skeleton-shine {
+  background: linear-gradient(90deg, #eef1f7 25%, #f7f9fd 50%, #eef1f7 75%);
+  background-size: 200% 100%;
+  animation: skShine 1.2s infinite linear 300ms;
+}
+@keyframes skShine { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ---- 窄屏 / 移动端适配：布局降级不砍功能 ---- */
+@media (max-width: 1180px) {
+  .pane-left { width: 200px; }
+  .pane-mid { width: 300px; }
+}
+@media (max-width: 980px) {
+  body { overflow: auto; }
+  .layout { flex-direction: column; height: auto; min-height: 100vh; }
+  .pane { border-right: none; border-bottom: 1px solid var(--border); }
+  .pane-left { width: 100%; }
+  .pane-left .nav-list { display: flex; flex-wrap: wrap; padding: 8px; }
+  .pane-left .nav-group { display: none; }
+  .pane-left .nav-item { margin: 2px; padding: 7px 12px; }
+  .pane-left .brand, .pane-left .model-strip { display: flex; }
+  .pane-mid, .doc-pane { width: 100% !important; }
+  .pane-mid .pane-body, .doc-pane .pane-body { max-height: 46vh; }
+  .pane-right { min-height: 60vh; }
+  .doc-pane { container-type: inline-size; }
+}
+
+/* ---- 无障碍：reduced-motion 全局降级（保留极轻淡入，不清零） ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 80ms !important;
+  }
+  .card-box:hover, .rec-card:hover, .model-card:hover, .theme-card:hover { transform: none; }
+  .el-button:not(.is-disabled):hover { transform: none; }
+}

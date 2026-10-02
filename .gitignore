@@ -1,0 +1,24 @@
+# ---- 依赖 ----
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ---- 密钥与环境（绝不入库）----
+.env
+*.env.local
+
+# ---- 运行时产物 ----
+backend/uploads/
+backend/generated/
+backend/exports/
+backend/data/
+frontend/dist/
+*.log
+
+# ---- 工具与临时 ----
+.workbuddy/
+.DS_Store
+Thumbs.db
+ui_test*.js
